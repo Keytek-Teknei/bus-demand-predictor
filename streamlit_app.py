@@ -1,6 +1,16 @@
 import streamlit as st
-st.write("Intentando leer archivo Excel...")
 import pandas as pd
+
+st.write("Intentando leer archivo Excel...")
+
+uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
+
+if uploaded_file is not None:
+    df = pd.read_excel(uploaded_file, sheet_name="Vuelos")  # o "Buses"
+    st.success("Archivo leído correctamente")
+    st.dataframe(df.head())
+else:
+    st.warning("Aún no has subido ningún archivo")
 from datetime import datetime, timedelta
 from sklearn.ensemble import RandomForestRegressor
 import joblib

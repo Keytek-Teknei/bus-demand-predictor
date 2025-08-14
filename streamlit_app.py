@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestRegressor
 import joblib
 
 # Cargar los archivos históricos
-vuelos = pd.read_excel('Históricos.xlsx', sheet_name='Vuelos')
+vuelos = pd.read_excel('Historicos.xlsx', sheet_name='Vuelos')
 buses = pd.read_excel('buses_historicos.xlsx')
 
 # Unificar fecha y hora real del vuelo

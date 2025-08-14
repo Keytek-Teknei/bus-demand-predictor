@@ -8,7 +8,7 @@ vuelos = pd.read_excel('Historicos.xlsx', sheet_name='Vuelos')
 buses = pd.read_excel('Historicos.xlsx', sheet_name='Buses')
 
 # Unificar fecha y hora real del vuelo
-vuelos['datetime_real'] = pd.to_datetime(vuelos['Fecha'] + ' ' + vuelos['Real'])
+vuelos['datetime_real'] = pd.to_datetime(vuelos['F. Vuelo'] + ' ' + vuelos['Real'])
 
 # Estimar tiempo de espera según origen
 def tiempo_espera(origen):
@@ -21,7 +21,7 @@ vuelos['Min_Espera'] = vuelos['ORIGEN'].apply(tiempo_espera)
 vuelos['datetime_abordan'] = vuelos['datetime_real'] + pd.to_timedelta(vuelos['Min_Espera'], unit='m')
 
 # Crear lista de expediciones con fecha y hora
-buses['datetime_expedicion'] = pd.to_datetime(buses['Fecha'] + ' ' + buses['Hora'])
+buses['datetime_expedicion'] = pd.to_datetime(buses['horaTeoricaExpedicion'] + ' ' + buses['Hora'])
 
 # Asignar cada vuelo a la expedición más próxima (después de datetime_abordan)
 def asignar_expedicion(abordan_time, lista_expediciones):

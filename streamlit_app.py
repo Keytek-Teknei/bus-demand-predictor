@@ -5,7 +5,7 @@ import joblib
 
 # Cargar los archivos históricos
 vuelos = pd.read_excel('Historicos.xlsx', sheet_name='Vuelos')
-buses = pd.read_excel('buses_historicos.xlsx')
+buses = pd.read_excel('Historicos.xlsx', sheet_name='Buses')
 
 # Unificar fecha y hora real del vuelo
 vuelos['datetime_real'] = pd.to_datetime(vuelos['Fecha'] + ' ' + vuelos['Real'])

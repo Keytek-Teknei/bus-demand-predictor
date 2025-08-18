@@ -16,7 +16,7 @@ if uploaded_file is not None:
 
     # Genera la lista de horas en intervalos de 15 minutos desde las 06:00 hasta las 23:45
 opciones_horas = [f"{h:02d}:{m:02d}" for h in range(6, 24) for m in [0, 15, 30, 45]]
-    hora = st.selectbox("Hora teórica de expedición", opciones_horas)
+hora = st.selectbox("Hora teórica de expedición", opciones_horas)
     fecha = st.date_input("Fecha de expedición")
     
     # Luego haces la predicción como siempre...

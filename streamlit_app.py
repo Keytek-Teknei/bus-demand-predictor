@@ -3,72 +3,74 @@ import pandas as pd
 from datetime import datetime, timedelta
 import joblib
 
-# Cargar modelo entrenado
+# Cargar modelo
 model = joblib.load("modelo_prediccion_bus_v3.pkl")
 
 st.title("Predicción de saturación del bus en el aeropuerto de Bilbao")
 
-# Utilidad para evitar errores de codificación
-def texto_seguro(texto):
-    try:
-        return str(texto).encode("utf-8", errors="replace").decode("utf-8")
-    except:
-        return "[Error al mostrar texto]"
-
-# Subida del archivo Excel
 uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
+
+# Selector de día
+fecha_seleccionada = st.date_input("Selecciona el día de la predicción", value=datetime.today())
+
+# Generar lista de horas desde 06:00 hasta 23:30 cada 15 minutos
+inicio = datetime.strptime("06:00", "%H:%M")
+fin = datetime.strptime("23:30", "%H:%M")
+expediciones = []
+while inicio <= fin:
+    expediciones.append(inicio.strftime("%H:%M"))
+    inicio += timedelta(minutes=15)
 
 if uploaded_file:
     try:
         df_vuelos = pd.read_excel(uploaded_file, sheet_name="Vuelos")
 
-        # Verificar columnas necesarias
+        # Validar columnas
         required_cols = ["F. Vuelo", "Real", "ORIGEN", "Asientos Promedio"]
         if not all(col in df_vuelos.columns for col in required_cols):
-            st.error(texto_seguro(f"El archivo debe contener las columnas: {required_cols}"))
+            st.error(f"El archivo debe contener las columnas: {required_cols}")
         else:
-            # Conversión de columnas a datetime
+            # Procesar vuelos del día seleccionado
+            fecha_str = fecha_seleccionada.strftime("%Y-%m-%d")
+            df_vuelos = df_vuelos[df_vuelos["F. Vuelo"].astype(str).str.startswith(fecha_str)]
+
+            # Calcular fecha y hora real del vuelo
             df_vuelos["datetime_llegada"] = pd.to_datetime(df_vuelos["F. Vuelo"].astype(str).str[:10] + " " + df_vuelos["Real"].astype(str))
 
-            # Tiempo de caminata por origen
-            paises_ue = ["BCN", "ALC", "MAD"]  # simplificado
+            # Tiempo de caminata
+            paises_ue = ["BCN", "MAD", "ALC"]  # Origenes considerados UE
             df_vuelos["tiempo_caminata"] = df_vuelos["ORIGEN"].apply(lambda x: timedelta(minutes=30) if x in paises_ue else timedelta(minutes=45))
+
+            # Hora en la que llegan listos al bus
             df_vuelos["datetime_abordan"] = df_vuelos["datetime_llegada"] + df_vuelos["tiempo_caminata"]
 
-            # Selección de fecha
-            fechas_disponibles = sorted(df_vuelos["datetime_llegada"].dt.date.unique())
-            fecha_seleccionada = st.date_input("Selecciona el día de la predicción", value=fechas_disponibles[0])
+            resultados = []
+            for hora in expediciones:
+                datetime_expedicion = pd.to_datetime(f"{fecha_str} {hora}")
+                # Filtrar pasajeros que abordan hasta esta hora
+                pasajeros_vuelos = df_vuelos[df_vuelos["datetime_abordan"] <= datetime_expedicion]
 
-            vuelos_dia = df_vuelos[df_vuelos["datetime_llegada"].dt.date == fecha_seleccionada]
+                # Evitar contar dobles: eliminar vuelos ya usados en expediciones previas
+                df_vuelos = df_vuelos[~df_vuelos.index.isin(pasajeros_vuelos.index)]
 
-            if vuelos_dia.empty:
-                st.warning("No hay vuelos para ese día en el archivo.")
-            else:
-                # Generar todas las expediciones
-                inicio = datetime.strptime("06:00", "%H:%M")
-                fin = datetime.strptime("23:30", "%H:%M")
-                hora_actual = inicio
+                capacidad_total = pasajeros_vuelos["Asientos Promedio"].sum()
+                input_modelo = pd.DataFrame({"capacidad_avion": [capacidad_total]})
+                prediccion = model.predict(input_modelo)[0]
 
-                while hora_actual <= fin:
-                    datetime_expedicion = datetime.combine(fecha_seleccionada, hora_actual.time())
-                    vuelos_aptos = vuelos_dia[vuelos_dia["datetime_abordan"] <= datetime_expedicion]
-                    capacidad_total = vuelos_aptos["Asientos Promedio"].sum()
-                    input_modelo = pd.DataFrame({"capacidad_avion": [capacidad_total]})
-                    prediccion = model.predict(input_modelo)[0]
+                resultados.append({
+                    "hora": hora,
+                    "capacidad": int(prediccion)
+                })
 
-                    mensaje = texto_seguro(f"\ud83d\udd52 Expedición {hora_actual.strftime('%H:%M')} — {int(prediccion)} pasajeros")
-                    st.subheader(mensaje)
-
-                    if prediccion >= 100:
-                        st.error(texto_seguro("\ud83d\udd34 Se espera saturación del autobús"))
-                    elif prediccion >= 90:
-                        st.warning(texto_seguro("\ud83d\udd39 Riesgo de saturación"))
-                    else:
-                        st.success(texto_seguro("\u2705 No se prevé saturación"))
-
-                    hora_actual += timedelta(minutes=15)
+            # Mostrar resultados
+            for r in resultados:
+                st.subheader(f"🕐 Expedición {r['hora']} — {r['capacidad']} pasajeros")
+                if r['capacidad'] >= 100:
+                    st.error("🔴 Se espera saturación del autobús")
+                elif r['capacidad'] >= 90:
+                    st.warning("⚠️ Riesgo de saturación, revisar capacidad")
+                else:
+                    st.success("✅ No se prevé saturación")
 
     except Exception as e:
-        st.error(texto_seguro(f"Error al procesar el archivo: {e}"))
-else:
-    st.warning("Aún no has subido ningún archivo")
+        st.error(f"Error al procesar el archivo: {e}")

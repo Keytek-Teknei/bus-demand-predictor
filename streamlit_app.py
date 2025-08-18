@@ -14,7 +14,7 @@ if uploaded_file is not None:
     # → puedes leer el Excel, mostrarlo y pedirle la hora/fecha
 
 df_vuelos = pd.read_excel(uploaded_file, sheet_name="NombreExactoDeTuHoja")
-    st.dataframe(df_vuelos.head())  # Opcional
+st.dataframe(df_vuelos.head())  # Opcional
 
     # Genera la lista de horas en intervalos de 15 minutos desde las 06:00 hasta las 23:45
 opciones_horas = [f"{h:02d}:{m:02d}" for h in range(6, 24) for m in [0, 15, 30, 45]]

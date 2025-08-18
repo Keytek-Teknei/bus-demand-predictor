@@ -1,86 +1,76 @@
 import streamlit as st
 import pandas as pd
-vuelos = None
-
-
-st.write("Intentando leer archivo Excel...")
-
-uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
-
-if uploaded_file is not None:
-    st.success("Archivo leído correctamente")
-
-    # Aquí ya sabes que el usuario ha subido un archivo
-    # → puedes leer el Excel, mostrarlo y pedirle la hora/fecha
-
-df_vuelos = pd.read_excel(uploaded_file, sheet_name="Sheet1")  # si se llama así
-st.dataframe(df_vuelos.head())  # Opcional
-
-    # Genera la lista de horas en intervalos de 15 minutos desde las 06:00 hasta las 23:45
-opciones_horas = [f"{h:02d}:{m:02d}" for h in range(6, 24) for m in [0, 15, 30, 45]]
-hora = st.selectbox("Hora teórica de expedición", opciones_horas)
-fecha = st.date_input("Fecha de expedición")
-    
-    # Luego haces la predicción como siempre...
-if vuelos is not None and not vuelos.empty:
-    st.write("Vuelos disponibles")
-else:
-    st.write("No hay vuelos")
-
 from datetime import datetime, timedelta
-from sklearn.ensemble import RandomForestRegressor
 import joblib
 
-# Cargar los archivos históricos
-vuelos = pd.read_excel('Historicos.xlsx', sheet_name='Vuelos')
-buses = pd.read_excel('Historicos.xlsx', sheet_name='Buses')
+# Cargar el modelo ya entrenado
+model = joblib.load("modelo_prediccion_bus.pkl")
 
-# Unificar fecha y hora real del vuelo
-vuelos['datetime_real'] = vuelos['F. Vuelo'] + pd.to_timedelta(vuelos['Real'] + ':00')
+st.title("Predicción de saturación del bus en el aeropuerto de Bilbao")
 
-# Estimar tiempo de espera según origen
-def tiempo_espera(origen):
-    if origen.upper() in ['MADRID', 'BCN', 'PARIS', 'ROMA', 'LISBOA', 'FRA']:
-        return 30
-    else:
-        return 45
+# Subida de archivo
+uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
-vuelos['Min_Espera'] = vuelos['ORIGEN'].apply(tiempo_espera)
-vuelos['datetime_abordan'] = vuelos['datetime_real'] + pd.to_timedelta(vuelos['Min_Espera'], unit='m')
+# Si se ha subido un archivo
+if uploaded_file:
+    try:
+        # Leer la hoja correcta del Excel
+        df_vuelos = pd.read_excel(uploaded_file, sheet_name="Vuelos")
 
-# Crear lista de expediciones con fecha y hora
-buses['fechaServicio'] = pd.to_datetime(buses['fechaServicio'], format='%Y-%m-%d')
-buses['horaTeoricaExpedicion'] = pd.to_datetime(buses['horaTeoricaExpedicion'], format='%H:%M:%S')
+        # Campos requeridos
+        required_cols = ["F. Vuelo", "Real", "ORIGEN", "Asientos Promedio"]
+        if not all(col in df_vuelos.columns for col in required_cols):
+            st.error(f"El archivo debe contener las columnas: {required_cols}")
+        else:
+            # Conversión de campos a datetime
+            df_vuelos["datetime_llegada"] = pd.to_datetime(df_vuelos["F. Vuelo"].astype(str).str[:10] + " " + df_vuelos["Real"].astype(str))
 
-buses['datetime_expedicion'] = pd.to_datetime(
-    buses['fechaServicio'].dt.strftime('%Y-%m-%d') + ' ' + buses['horaTeoricaExpedicion'].dt.strftime('%H:%M:%S')
-)
+            # Clasificación UE / No UE (simplificada por ahora)
+            paises_ue = ["BCN", "ALC", "MAD"]  # ejemplo
+            df_vuelos["tiempo_caminata"] = df_vuelos["ORIGEN"].apply(lambda x: timedelta(minutes=30) if x in paises_ue else timedelta(minutes=45))
 
-# Asignar cada vuelo a la expedición más próxima (después de datetime_abordan)
-def asignar_expedicion(abordan_time, lista_expediciones):
-    futuras = lista_expediciones[lista_expediciones >= abordan_time]
-    return futuras.min() if not futuras.empty else None
+            # Calcular cuando están listos para abordar
+            df_vuelos["datetime_abordan"] = df_vuelos["datetime_llegada"] + df_vuelos["tiempo_caminata"]
 
-expediciones = buses['datetime_expedicion'].sort_values().unique()
-vuelos['Expedicion Asignada'] = vuelos['datetime_abordan'].apply(lambda x: asignar_expedicion(x, pd.Series(expediciones)))
+            # Crear lista de horas de expedición para seleccionar
+            opciones_horas = [
+                "06:00", "06:15", "06:30", "06:45",
+                "07:00", "07:15", "07:30", "07:45",
+                "08:00", "08:15", "08:30", "08:45",
+                "09:00", "09:15", "09:30", "09:45",
+                "10:00", "10:15", "10:30", "10:45"
+            ]
+            hora_str = st.selectbox("Hora teórica de expedición", opciones_horas)
+            fecha_str = st.date_input("Fecha de expedición", value=datetime.today()).strftime("%Y-%m-%d")
 
-# Agrupar los vuelos por expedición asignada
-resumen = vuelos.groupby('Expedicion Asignada').agg(
-    vuelos_conectados=('ORIGEN', 'count'),
-    capacidad_total=('Asientos Promedio', 'sum')
-).reset_index().rename(columns={'Expedicion Asignada': 'datetime_expedicion'})
+            # Convertir a datetime
+            datetime_expedicion = pd.to_datetime(f"{fecha_str} {hora_str}")
 
-# Unir con datos reales de expediciones
-df_final = pd.merge(resumen, buses[['datetime_expedicion', 'Viajes']], on='datetime_expedicion', how='inner')
-df_final['minutos_dia'] = df_final['datetime_expedicion'].dt.hour * 60 + df_final['datetime_expedicion'].dt.minute
+            # Filtrar los vuelos que llegan a tiempo a esa expedición
+            vuelos_aptos = df_vuelos[df_vuelos["datetime_abordan"] <= datetime_expedicion]
 
-# Entrenar modelo
-X = df_final[['minutos_dia', 'vuelos_conectados', 'capacidad_total']]
-y = df_final['Viajes']
+            if vuelos_aptos.empty:
+                st.write("No hay vuelos que lleguen a tiempo para esta expedición")
+            else:
+                capacidad_total = vuelos_aptos["Asientos Promedio"].sum()
 
-modelo = RandomForestRegressor(n_estimators=100, random_state=42)
-modelo.fit(X, y)
+                # Realizar la predicción con el modelo
+                input_modelo = pd.DataFrame({"capacidad_avion": [capacidad_total]})
+                prediccion = model.predict(input_modelo)[0]
 
-# Guardar modelo
-joblib.dump(modelo, 'modelo_prediccion_bus_v3.pkl')
-print('✅ Modelo actualizado y guardado correctamente')
+                st.subheader("Resultado de la predicción")
+                st.markdown(f"El modelo predice que abordaran aproximadamente **{int(prediccion)} pasajeros**")
+
+                if prediccion >= 100:
+                    st.error("Se espera saturación del servicio de autobús")
+                elif prediccion >= 90:
+                    st.warning("Riesgo de saturación, revisar capacidad")
+                else:
+                    st.success("No se prevé saturación")
+
+    except Exception as e:
+        st.error(f"Error al procesar el archivo: {e}")
+
+else:
+    st.warning("Aún no has subido ningún archivo")
+

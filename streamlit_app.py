@@ -8,6 +8,13 @@ model = joblib.load("modelo_prediccion_bus_v3.pkl")
 
 st.title("Predicción de saturación del bus en el aeropuerto de Bilbao")
 
+# Utilidad para evitar errores de codificación
+def texto_seguro(texto):
+    try:
+        return str(texto).encode("utf-8", errors="replace").decode("utf-8")
+    except:
+        return "[Error al mostrar texto]"
+
 # Subida del archivo Excel
 uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
@@ -18,7 +25,7 @@ if uploaded_file:
         # Verificar columnas necesarias
         required_cols = ["F. Vuelo", "Real", "ORIGEN", "Asientos Promedio"]
         if not all(col in df_vuelos.columns for col in required_cols):
-            st.error(f"El archivo debe contener las columnas: {required_cols}")
+            st.error(texto_seguro(f"El archivo debe contener las columnas: {required_cols}"))
         else:
             # Conversión de columnas a datetime
             df_vuelos["datetime_llegada"] = pd.to_datetime(df_vuelos["F. Vuelo"].astype(str).str[:10] + " " + df_vuelos["Real"].astype(str))
@@ -49,18 +56,19 @@ if uploaded_file:
                     input_modelo = pd.DataFrame({"capacidad_avion": [capacidad_total]})
                     prediccion = model.predict(input_modelo)[0]
 
-                    st.subheader(f"\ud83d\udd52 Expedición {hora_actual.strftime('%H:%M')} — {int(prediccion)} pasajeros")
+                    mensaje = texto_seguro(f"\ud83d\udd52 Expedición {hora_actual.strftime('%H:%M')} — {int(prediccion)} pasajeros")
+                    st.subheader(mensaje)
 
                     if prediccion >= 100:
-                        st.error("\ud83d\udd34 Se espera saturación del autobús")
+                        st.error(texto_seguro("\ud83d\udd34 Se espera saturación del autobús"))
                     elif prediccion >= 90:
-                        st.warning("\ud83d\udd39 Riesgo de saturación")
+                        st.warning(texto_seguro("\ud83d\udd39 Riesgo de saturación"))
                     else:
-                        st.success("\u2705 No se prevé saturación")
+                        st.success(texto_seguro("\u2705 No se prevé saturación"))
 
                     hora_actual += timedelta(minutes=15)
 
     except Exception as e:
-        st.error(f"Error al procesar el archivo: {e}")
+        st.error(texto_seguro(f"Error al procesar el archivo: {e}"))
 else:
     st.warning("Aún no has subido ningún archivo")

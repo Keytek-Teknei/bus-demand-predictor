@@ -32,14 +32,17 @@ if uploaded_file:
             # Calcular cuando están listos para abordar
             df_vuelos["datetime_abordan"] = df_vuelos["datetime_llegada"] + df_vuelos["tiempo_caminata"]
 
-            # Crear lista de horas de expedición para seleccionar
-            opciones_horas = [
-                "06:00", "06:15", "06:30", "06:45",
-                "07:00", "07:15", "07:30", "07:45",
-                "08:00", "08:15", "08:30", "08:45",
-                "09:00", "09:15", "09:30", "09:45",
-                "10:00", "10:15", "10:30", "10:45"
-            ]
+          from datetime import datetime, timedelta
+
+# Generar lista de horas desde 06:00 hasta 23:30 cada 15 minutos
+inicio = datetime.strptime("06:00", "%H:%M")
+fin = datetime.strptime("23:30", "%H:%M")
+opciones_horas = []
+
+while inicio <= fin:
+    opciones_horas.append(inicio.strftime("%H:%M"))
+    inicio += timedelta(minutes=15)
+
             hora_str = st.selectbox("Hora teórica de expedición", opciones_horas)
             fecha_str = st.date_input("Fecha de expedición", value=datetime.today()).strftime("%Y-%m-%d")
 

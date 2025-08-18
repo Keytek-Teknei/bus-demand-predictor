@@ -32,7 +32,7 @@ if uploaded_file:
             # Calcular cuando están listos para abordar
             df_vuelos["datetime_abordan"] = df_vuelos["datetime_llegada"] + df_vuelos["tiempo_caminata"]
 
-          from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 
 # Generar lista de horas desde 06:00 hasta 23:30 cada 15 minutos
 inicio = datetime.strptime("06:00", "%H:%M")

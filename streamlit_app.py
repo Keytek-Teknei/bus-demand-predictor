@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+vuelos = None
+
 
 st.write("Intentando leer archivo Excel...")
 
@@ -20,7 +22,7 @@ hora = st.selectbox("Hora teórica de expedición", opciones_horas)
 fecha = st.date_input("Fecha de expedición")
     
     # Luego haces la predicción como siempre...
-if not vuelos.empty:
+if vuelos is not None and not vuelos.empty:
     st.write("Vuelos disponibles")
 else:
     st.write("No hay vuelos")

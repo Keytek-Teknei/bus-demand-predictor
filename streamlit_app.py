@@ -20,6 +20,10 @@ hora = st.selectbox("Hora teórica de expedición", opciones_horas)
 fecha = st.date_input("Fecha de expedición")
     
     # Luego haces la predicción como siempre...
+if not vuelos.empty:
+    st.write("Vuelos disponibles")
+else:
+    st.write("No hay vuelos")
 
 else:
     st.warning("Aún no has subido ningún archivo")

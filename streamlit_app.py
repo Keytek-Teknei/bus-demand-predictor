@@ -6,9 +6,19 @@ st.write("Intentando leer archivo Excel...")
 uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
 if uploaded_file is not None:
-    df = pd.read_excel(uploaded_file, sheet_name="Vuelos")  # o "Buses"
     st.success("Archivo leído correctamente")
-    st.dataframe(df.head())
+
+    # Aquí ya sabes que el usuario ha subido un archivo
+    # → puedes leer el Excel, mostrarlo y pedirle la hora/fecha
+
+    df_vuelos = pd.read_excel(uploaded_file, sheet_name="Vuelos")
+    st.dataframe(df_vuelos.head())  # Opcional
+
+    hora = st.selectbox("Hora teórica de expedición", opciones_horas)
+    fecha = st.date_input("Fecha de expedición")
+    
+    # Luego haces la predicción como siempre...
+
 else:
     st.warning("Aún no has subido ningún archivo")
 from datetime import datetime, timedelta

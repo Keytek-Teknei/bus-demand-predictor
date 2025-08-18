@@ -25,8 +25,6 @@ if not vuelos.empty:
 else:
     st.write("No hay vuelos")
 
-else:
-    st.warning("Aún no has subido ningún archivo")
 from datetime import datetime, timedelta
 from sklearn.ensemble import RandomForestRegressor
 import joblib

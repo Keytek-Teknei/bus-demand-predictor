@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import joblib
 
 # Cargar el modelo ya entrenado
-model = joblib.load("modelo_prediccion_bus.pkl")
+model = joblib.load("modelo_prediccion_bus_v3.pkl")
 
 st.title("Predicción de saturación del bus en el aeropuerto de Bilbao")
 

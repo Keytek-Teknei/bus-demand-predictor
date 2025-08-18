@@ -33,10 +33,10 @@ if uploaded_file:
             df_vuelos["datetime_abordan"] = df_vuelos["datetime_llegada"] + df_vuelos["tiempo_caminata"]
 
 try:
-    # código que podría fallar
     df = pd.read_excel(uploaded_file, sheet_name="Vuelos")
 except Exception as e:
-    st.error(f"No se pudo cargar el archivo: {e}")
+    st.error(f"No se pudo leer el archivo: {e}")
+
     
 # Generar lista de horas desde 06:00 hasta 23:30 cada 15 minutos
 inicio = datetime.strptime("06:00", "%H:%M")

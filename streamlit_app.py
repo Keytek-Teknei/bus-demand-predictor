@@ -38,7 +38,37 @@ if uploaded_file:
             df_vuelos["datetime_llegada"] = pd.to_datetime(df_vuelos["F. Vuelo"].astype(str).str[:10] + " " + df_vuelos["Real"].astype(str))
 
             # Tiempo de caminata
-            paises_ue = ["BCN", "MAD", "ALC"]  # Origenes considerados UE
+            paises_ue = [
+    # España
+    "MAD", "BCN", "AGP", "ALC", "BIO", "VLC", "SVQ", "SCQ", "PMI", "LPA", "TFN", "TFS", "FUE", "OVD", "RMU",
+    # Alemania
+    "FRA", "MUC", "DUS", "TXL", "HAM", "STR", "CGN", "HAJ", "LEJ", "NRN",
+    # Francia
+    "CDG", "ORY", "NCE", "LYS", "MRS", "TLS", "BOD", "NTE", "LIL", "BVA",
+    # Italia
+    "FCO", "CIA", "MXP", "LIN", "NAP", "VCE", "BLQ", "VRN", "PMO", "CTA",
+    # Países Bajos
+    "AMS", "EIN", "RTM", "MST", "GRQ",
+    # Bélgica
+    "BRU", "CRL", "ANR",
+    # Portugal
+    "LIS", "OPO", "FAO", "LPA", "PDL", "TER",
+    # Suecia
+    "ARN", "GOT", "MMX", "VXO", "BMA",
+    # Dinamarca
+    "CPH", "AAR", "BLL",
+    # Finlandia
+    "HEL", "TMP", "TKU", "QVY",
+    # Grecia
+    "ATH", "SKG", "HER", "RHO", "CFU",
+    # Austria
+    "VIE", "SZG", "GRZ", "INN", "LNZ",
+    # Irlanda
+    "DUB", "SNN", "ORK",
+    # Polonia
+    "WAW", "KRK", "GDN", "POZ", "KTW",
+    # Resto de aeropuertos importantes de la UE (opcional, según necesidades)
+]  # Origenes considerados UE
             df_vuelos["tiempo_caminata"] = df_vuelos["ORIGEN"].apply(lambda x: timedelta(minutes=30) if x in paises_ue else timedelta(minutes=45))
 
             # Hora en la que llegan listos al bus

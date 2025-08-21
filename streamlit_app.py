@@ -8,13 +8,12 @@ model = joblib.load("modelo_prediccion_bus_v3.pkl")
 
 st.title("Predicción de saturación del bus en el aeropuerto de Bilbao")
 
-# Subida del archivo
 uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
-# Selector de fecha
+# Selector de día
 fecha_seleccionada = st.date_input("Selecciona el día de la predicción", value=datetime.today())
 
-# Generar lista de horas de expedición del día (06:00 a 23:30 cada 15 min)
+# Generar lista de horas desde 06:00 hasta 23:30 cada 15 minutos
 inicio = datetime.strptime("06:00", "%H:%M")
 fin = datetime.strptime("23:30", "%H:%M")
 expediciones = []
@@ -24,68 +23,78 @@ while inicio <= fin:
 
 if uploaded_file:
     try:
-        # Leer la hoja de vuelos
         df_vuelos = pd.read_excel(uploaded_file, sheet_name="Vuelos")
 
-        # Verificar columnas
+        # Validar columnas
         required_cols = ["F. Vuelo", "Real", "ORIGEN", "Asientos Promedio"]
         if not all(col in df_vuelos.columns for col in required_cols):
             st.error(f"El archivo debe contener las columnas: {required_cols}")
         else:
-            # Filtrar vuelos del día seleccionado
+            # Procesar vuelos del día seleccionado
             fecha_str = fecha_seleccionada.strftime("%Y-%m-%d")
             df_vuelos = df_vuelos[df_vuelos["F. Vuelo"].astype(str).str.startswith(fecha_str)]
 
-            # Convertir fecha y hora de vuelo
-            df_vuelos["datetime_llegada"] = pd.to_datetime(
-                df_vuelos["F. Vuelo"].astype(str).str[:10] + " " + df_vuelos["Real"].astype(str)
-            )
+            # Calcular fecha y hora real del vuelo
+            df_vuelos["datetime_llegada"] = pd.to_datetime(df_vuelos["F. Vuelo"].astype(str).str[:10] + " " + df_vuelos["Real"].astype(str))
 
-            # Tiempo de caminata según origen
-            paises_ue = ["BCN", "MAD", "ALC", "VLC", "AGP"]  # Ya integrada tu lista completa
-            df_vuelos["tiempo_caminata"] = df_vuelos["ORIGEN"].apply(
-                lambda x: timedelta(minutes=30) if x in paises_ue else timedelta(minutes=45)
-            )
+            # Tiempo de caminata
+            paises_ue = [
+    # España
+    "MAD", "BCN", "AGP", "ALC", "BIO", "VLC", "SVQ", "SCQ", "PMI", "LPA", "TFN", "TFS", "FUE", "OVD", "RMU",
+    # Alemania
+    "FRA", "MUC", "DUS", "TXL", "HAM", "STR", "CGN", "HAJ", "LEJ", "NRN",
+    # Francia
+    "CDG", "ORY", "NCE", "LYS", "MRS", "TLS", "BOD", "NTE", "LIL", "BVA",
+    # Italia
+    "FCO", "CIA", "MXP", "LIN", "NAP", "VCE", "BLQ", "VRN", "PMO", "CTA",
+    # Países Bajos
+    "AMS", "EIN", "RTM", "MST", "GRQ",
+    # Bélgica
+    "BRU", "CRL", "ANR",
+    # Portugal
+    "LIS", "OPO", "FAO", "LPA", "PDL", "TER",
+    # Suecia
+    "ARN", "GOT", "MMX", "VXO", "BMA",
+    # Dinamarca
+    "CPH", "AAR", "BLL",
+    # Finlandia
+    "HEL", "TMP", "TKU", "QVY",
+    # Grecia
+    "ATH", "SKG", "HER", "RHO", "CFU",
+    # Austria
+    "VIE", "SZG", "GRZ", "INN", "LNZ",
+    # Irlanda
+    "DUB", "SNN", "ORK",
+    # Polonia
+    "WAW", "KRK", "GDN", "POZ", "KTW",
+    # Resto de aeropuertos importantes de la UE (opcional, según necesidades)
+]  # Origenes considerados UE
+            df_vuelos["tiempo_caminata"] = df_vuelos["ORIGEN"].apply(lambda x: timedelta(minutes=30) if x in paises_ue else timedelta(minutes=45))
 
-            # Hora estimada de abordaje
+            # Hora en la que llegan listos al bus
             df_vuelos["datetime_abordan"] = df_vuelos["datetime_llegada"] + df_vuelos["tiempo_caminata"]
 
-            # Filtrar vuelos para el día seleccionado
-            vuelos_dia = df_vuelos[df_vuelos["F. Vuelo"].astype(str).str.startswith(fecha_str)]
-
-            # Inicializar lista de vuelos ya asignados
-            vuelos_asignados = []
-
-            st.subheader(f"Resultados de ocupación para el día {fecha_str}")
-
+            resultados = []
             for hora in expediciones:
                 datetime_expedicion = pd.to_datetime(f"{fecha_str} {hora}")
+                # Filtrar pasajeros que abordan hasta esta hora
+                pasajeros_vuelos = df_vuelos[df_vuelos["datetime_abordan"] <= datetime_expedicion]
 
-                # Filtrar vuelos no asignados y que puedan abordar en esta expedición
-                vuelos_aptos = vuelos_dia[
-                    (~vuelos_dia.index.isin(vuelos_asignados)) &
-                    (vuelos_dia["datetime_abordan"] <= datetime_expedicion)
-                ]
+                # Evitar contar dobles: eliminar vuelos ya usados en expediciones previas
+                df_vuelos = df_vuelos[~df_vuelos.index.isin(pasajeros_vuelos.index)]
 
-                # Marcar estos vuelos como ya asignados
-                vuelos_asignados.extend(vuelos_aptos.index.tolist())
+                capacidad_total = pasajeros_vuelos["Asientos Promedio"].sum()
+                input_modelo = pd.DataFrame({"capacidad_avion": [capacidad_total]})
+                prediccion = model.predict(input_modelo)[0]
 
-                # Sumar Asientos Promedio
-                capacidad_total = vuelos_aptos["Asientos Promedio"].sum()
+                resultados.append({
+                    "hora": hora,
+                    "capacidad": int(prediccion)
+                })
 
-                # Si no hay vuelos asignados, mostrar 0 pasajeros
-                if capacidad_total == 0:
-                    st.markdown(f"### 🕒 Expedición {hora} — 0 pasajeros")
-                    st.info("Sin vuelos asignados a esta expedición")
-                    continue
-
-                # Predicción usando el modelo
-                input_model = pd.DataFrame({"capacidad_avion": [capacidad_total]})
-                prediccion = model.predict(input_model)[0]
-
-                # Mostrar resultados con alerta según umbral
-                st.markdown(f"### 🕒 Expedición {hora} — {int(prediccion)} pasajeros")
-                ocupacion = int(prediccion)
+            # Mostrar resultados
+            for r in resultados:
+                st.subheader(f"🕐 Expedición {r['hora']} — {r['capacidad']} pasajeros")
                 if 0 <= ocupacion <= 10:
                     mensaje = "Muy pocos pasajeros, el autobús está prácticamente vacío ✅"
                 elif 11 <= ocupacion <= 30:
@@ -106,5 +115,7 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"Error al procesar el archivo: {e}")
-else:
-    st.warning("Aún no has subido ningún archivo")
+
+
+
+               

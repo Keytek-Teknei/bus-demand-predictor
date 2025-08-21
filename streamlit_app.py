@@ -83,18 +83,18 @@ if uploaded_file:
                 # Evitar contar dobles: eliminar vuelos ya usados en expediciones previas
                 df_vuelos = df_vuelos[~df_vuelos.index.isin(pasajeros_vuelos.index)]
 
-                capacidad_total = pasajeros_vuelos["Asientos Promedio"].sum()
+               capacidad_total = pasajeros_vuelos["Asientos Promedio"].sum()
+               if capacidad_total == 0:
+                   prediccion = 0  # No hay pasajeros porque no hay vuelos
+               else:
+                   input_modelo = pd.DataFrame({"capacidad_avion": [capacidad_total]})
+                   prediccion = model.predict(input_modelo)[0]
+                resultados.append({
+                    "hora": hora,
+                    "capacidad": int(prediccion)
+                })
 
-if capacidad_total == 0:
-    prediccion = 0  # No hay pasajeros porque no hay vuelos
-else:
-    input_modelo = pd.DataFrame({"capacidad_avion": [capacidad_total]})
-    prediccion = model.predict(input_modelo)[0]
 
-resultados.append({
-    "hora": hora,
-    "capacidad": int(prediccion)
-})
 
 
             # Mostrar resultados

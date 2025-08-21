@@ -95,27 +95,12 @@ if uploaded_file:
             # Mostrar resultados
             for r in resultados:
                 st.subheader(f"🕐 Expedición {r['hora']} — {r['capacidad']} pasajeros")
-                if 0 <= r['capacidad'] <= 10:
-                    mensaje = "Muy pocos pasajeros, el autobús está prácticamente vacío ✅"
-                elif 11 <= r['capacidad'] <= 30:
-                    mensaje = "El servicio aguanta perfectamente la demanda ✅"
-                elif 31 <= r['capacidad'] <= 60:
-                    mensaje = "Poco a poco se está llenando el autobús ⚠️"
-                elif 61 <= r['capacidad'] <= 80:
-                    mensaje = "Está cerca de saturarse, pero todavía hay capacidad ⚠️"
-                elif 81 <= r['capacidad'] <= 90:
-                    mensaje = "Está cerca de saturarse ⚠️"
-                elif r['capacidad'] >= 100:
-                    mensaje = "Se espera saturación del autobús 🔴"
+                if r['capacidad'] >= 100:
+                    st.error("🔴 Se espera saturación del autobús")
+                elif r['capacidad'] >= 90:
+                    st.warning("⚠️ Riesgo de saturación, revisar capacidad")
                 else:
-                    mensaje = "No hay información suficiente"
-                st.markdown(f"🕐 Expedición {r['hora']} — {r['capacidad']} pasajeros")
-                st.info(mensaje)
-
+                    st.success("✅ No se prevé saturación")
 
     except Exception as e:
         st.error(f"Error al procesar el archivo: {e}")
-
-
-
-               

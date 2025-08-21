@@ -109,7 +109,7 @@ if uploaded_file:
                     mensaje = "Se espera saturación del autobús 🔴"
                 else:
                     mensaje = "No hay información suficiente"
-                st.markdown(f"### 🕒 Expedición {hora_expedicion.strftime('%H:%M')} — {r['capacidad']} pasajeros")
+                st.markdown(f"🕐 Expedición {r['hora']} — {r['capacidad']} pasajeros")
                 st.info(mensaje)
 
 

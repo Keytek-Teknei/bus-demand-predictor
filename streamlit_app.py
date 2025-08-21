@@ -85,12 +85,24 @@ if uploaded_file:
 
                 # Mostrar resultados con alerta según umbral
                 st.markdown(f"### 🕒 Expedición {hora} — {int(prediccion)} pasajeros")
-                if prediccion >= 100:
-                    st.error("🔴 Se espera saturación del autobús")
-                elif prediccion >= 90:
-                    st.warning("⚠️ Riesgo de saturación, revisar capacidad")
-                else:
-                    st.success("✅ No se prevé saturación")
+                ocupacion = int(prediccion)
+
+if 0 <= ocupacion <= 10:
+    mensaje = "Muy pocos pasajeros, el autobús está prácticamente vacío ✅"
+elif 11 <= ocupacion <= 30:
+    mensaje = "El servicio aguanta perfectamente la demanda ✅"
+elif 31 <= ocupacion <= 60:
+    mensaje = "Poco a poco se está llenando el autobús ⚠️"
+elif 61 <= ocupacion <= 90:
+    mensaje = "Está cerca de saturarse ⚠️"
+elif ocupacion >= 100:
+    mensaje = "Se espera saturación del autobús 🔴"
+else:
+    mensaje = "No hay información suficiente"
+
+st.markdown(f"### 🕒 Expedición {hora_expedicion.strftime('%H:%M')} — {ocupacion} pasajeros")
+st.info(mensaje)
+
 
     except Exception as e:
         st.error(f"Error al procesar el archivo: {e}")

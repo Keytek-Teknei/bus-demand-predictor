@@ -86,22 +86,22 @@ if uploaded_file:
                 # Mostrar resultados con alerta según umbral
                 st.markdown(f"### 🕒 Expedición {hora} — {int(prediccion)} pasajeros")
                 ocupacion = int(prediccion)
-
-if 0 <= ocupacion <= 10:
-    mensaje = "Muy pocos pasajeros, el autobús está prácticamente vacío ✅"
-elif 11 <= ocupacion <= 30:
-    mensaje = "El servicio aguanta perfectamente la demanda ✅"
-elif 31 <= ocupacion <= 60:
-    mensaje = "Poco a poco se está llenando el autobús ⚠️"
-elif 61 <= ocupacion <= 90:
-    mensaje = "Está cerca de saturarse ⚠️"
-elif ocupacion >= 100:
-    mensaje = "Se espera saturación del autobús 🔴"
-else:
-    mensaje = "No hay información suficiente"
-
-st.markdown(f"### 🕒 Expedición {hora_expedicion.strftime('%H:%M')} — {ocupacion} pasajeros")
-st.info(mensaje)
+                if 0 <= ocupacion <= 10:
+                    mensaje = "Muy pocos pasajeros, el autobús está prácticamente vacío ✅"
+                elif 11 <= ocupacion <= 30:
+                    mensaje = "El servicio aguanta perfectamente la demanda ✅"
+                elif 31 <= ocupacion <= 60:
+                    mensaje = "Poco a poco se está llenando el autobús ⚠️"
+                elif 61 <= ocupacion <= 80:
+                    mensaje = "Está cerca de saturarse, pero todavía hay capacidad ⚠️"
+                elif 81 <= ocupacion <= 90:
+                    mensaje = "Está cerca de saturarse ⚠️"
+                elif ocupacion >= 100:
+                    mensaje = "Se espera saturación del autobús 🔴"
+                else:
+                    mensaje = "No hay información suficiente"
+                st.markdown(f"### 🕒 Expedición {hora_expedicion.strftime('%H:%M')} — {ocupacion} pasajeros")
+                st.info(mensaje)
 
 
     except Exception as e:

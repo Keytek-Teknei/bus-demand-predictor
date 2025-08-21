@@ -95,21 +95,21 @@ if uploaded_file:
             # Mostrar resultados
             for r in resultados:
                 st.subheader(f"🕐 Expedición {r['hora']} — {r['capacidad']} pasajeros")
-                if 0 <= ocupacion <= 10:
+                if 0 <= capacidad <= 10:
                     mensaje = "Muy pocos pasajeros, el autobús está prácticamente vacío ✅"
-                elif 11 <= ocupacion <= 30:
+                elif 11 <= capacidad <= 30:
                     mensaje = "El servicio aguanta perfectamente la demanda ✅"
-                elif 31 <= ocupacion <= 60:
+                elif 31 <= capacidad <= 60:
                     mensaje = "Poco a poco se está llenando el autobús ⚠️"
-                elif 61 <= ocupacion <= 80:
+                elif 61 <= capacidad <= 80:
                     mensaje = "Está cerca de saturarse, pero todavía hay capacidad ⚠️"
-                elif 81 <= ocupacion <= 90:
+                elif 81 <= capacidad <= 90:
                     mensaje = "Está cerca de saturarse ⚠️"
-                elif ocupacion >= 100:
+                elif capacidad >= 100:
                     mensaje = "Se espera saturación del autobús 🔴"
                 else:
                     mensaje = "No hay información suficiente"
-                st.markdown(f"### 🕒 Expedición {hora_expedicion.strftime('%H:%M')} — {ocupacion} pasajeros")
+                st.markdown(f"### 🕒 Expedición {hora_expedicion.strftime('%H:%M')} — {capacidad} pasajeros")
                 st.info(mensaje)
 
 
